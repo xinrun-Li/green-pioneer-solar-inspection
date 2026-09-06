@@ -1,0 +1,526 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>绿能先锋 · 无人机巡检复核台</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --canvas: #f3f6f1;
+      --paper: #ffffff;
+      --paper-soft: #f7faf6;
+      --ink: #17332a;
+      --muted: #718079;
+      --hairline: #dce6dd;
+      --brand: #137a3f;
+      --brand-dark: #0b4b31;
+      --brand-light: #e5f4e9;
+      --lime: #76bd43;
+      --sky: #eaf6fa;
+      --normal: #1f9c52;
+      --wash: #efa42b;
+      --repair: #dc4a40;
+      --shadow: 0 18px 50px rgba(24, 63, 43, .08);
+      --sans: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      --mono: "SFMono-Regular", "Menlo", monospace;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; background: var(--canvas); color: var(--ink); font-family: var(--sans); }
+    button, textarea, input { font: inherit; }
+    button { color: inherit; }
+    .app { min-height: 100vh; display: grid; grid-template-rows: 72px minmax(0, 1fr); }
+
+    .topbar {
+      position: sticky; top: 0; z-index: 50;
+      display: grid; grid-template-columns: 212px minmax(0, 1fr) auto; align-items: center;
+      min-height: 72px; padding: 0 24px 0 20px;
+      background: rgba(255,255,255,.95); border-bottom: 1px solid var(--hairline);
+      backdrop-filter: blur(18px);
+    }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand-mark {
+      position: relative; width: 40px; height: 40px; overflow: hidden;
+      background: var(--brand-dark); border: 1px solid rgba(255,255,255,.18); border-radius: 11px;
+      box-shadow: 0 7px 16px rgba(11,75,49,.18), inset 0 0 0 1px rgba(255,255,255,.05);
+    }
+    .brand-mark::before {
+      content: ""; position: absolute; left: 8px; bottom: 8px; width: 23px; height: 14px;
+      border: 1.5px solid rgba(255,255,255,.95); transform: skew(-9deg);
+      background: repeating-linear-gradient(90deg, transparent 0 6px, rgba(255,255,255,.55) 6px 7px), repeating-linear-gradient(0deg, transparent 0 5px, rgba(255,255,255,.42) 5px 6px);
+    }
+    .brand-mark::after {
+      content: ""; position: absolute; right: 7px; top: 7px; width: 8px; height: 8px;
+      background: #a7dd55; border-radius: 50%; box-shadow: 0 0 0 3px rgba(167,221,85,.14);
+    }
+    .brand-copy strong { display: block; font-size: 18px; font-weight: 700; letter-spacing: .08em; }
+    .brand-copy span { display: block; margin-top: 3px; color: #72887d; font-family: var(--mono); font-size: 7px; letter-spacing: .15em; }
+    .context { min-width: 0; padding-left: 24px; border-left: 1px solid var(--hairline); }
+    .context strong { display: block; overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+    .context span { display: block; margin-top: 3px; color: var(--muted); font-size: 10px; }
+    .system-strip { display: flex; align-items: center; gap: 14px; }
+    .system-item { padding-left: 14px; border-left: 1px solid var(--hairline); }
+    .system-item:first-child { border-left: 0; }
+    .system-item span { display: block; color: var(--muted); font-size: 9px; letter-spacing: .04em; }
+    .system-item strong { display: block; margin-top: 2px; font-family: var(--mono); font-size: 11px; }
+    .live { color: var(--brand); }
+    .avatar { display: grid; place-items: center; width: 34px; height: 34px; color: white; background: var(--brand-dark); border-radius: 50%; font-size: 11px; font-weight: 700; }
+
+    .body { display: grid; grid-template-columns: 212px minmax(0, 1fr); min-height: 0; }
+    .sidebar {
+      position: sticky; top: 72px; height: calc(100vh - 72px);
+      display: flex; flex-direction: column; padding: 20px 14px;
+      background: #fbfcf9; border-right: 1px solid var(--hairline);
+    }
+    .nav-caption { margin: 8px 10px 8px; color: #8e9d94; font-size: 10px; font-weight: 600; letter-spacing: .12em; }
+    .nav-item {
+      position: relative; width: 100%; min-height: 46px; display: flex; align-items: center; gap: 11px;
+      margin-bottom: 4px; padding: 0 12px; color: var(--muted); background: transparent; border: 0; border-radius: 10px;
+      text-align: left; cursor: pointer;
+    }
+    .nav-item.active { color: var(--brand-dark); background: var(--brand-light); font-weight: 700; }
+    .nav-item.active::after { content: ""; position: absolute; right: 0; width: 3px; height: 20px; background: var(--brand); border-radius: 3px 0 0 3px; }
+    .nav-icon { display: grid; place-items: center; width: 24px; height: 24px; color: currentColor; border: 0; border-radius: 7px; font-family: var(--mono); font-size: 9px; font-weight: 700; }
+    .nav-item.active .nav-icon { color: white; background: var(--brand); box-shadow: 0 5px 12px rgba(19,122,63,.16); }
+    .nav-item span:last-child { font-size: 13px; }
+    .sidebar-bottom { margin-top: auto; padding: 14px 12px; background: var(--sky); border-radius: 12px; }
+    .sidebar-bottom strong { display: block; font-size: 10px; }
+    .sidebar-bottom p { margin: 5px 0 0; color: var(--muted); font-size: 10px; line-height: 1.55; }
+    .signal { display: inline-block; width: 7px; height: 7px; margin-right: 6px; background: var(--normal); border-radius: 50%; box-shadow: 0 0 0 4px rgba(31,156,82,.1); }
+
+    .content { min-width: 0; }
+    .page { display: none; }
+    .page.active { display: block; }
+    .recognition-layout { display: grid; grid-template-columns: minmax(0, 1fr) 356px; min-height: calc(100vh - 72px); }
+    .workspace { min-width: 0; padding: 26px 26px 30px; }
+    .page-heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 18px; }
+    .heading-copy span { color: var(--brand); font-size: 10px; font-weight: 650; letter-spacing: .1em; }
+    .heading-copy h1 { margin: 6px 0 4px; font-size: 30px; font-weight: 650; line-height: 1.1; letter-spacing: -.025em; }
+    .heading-copy p { margin: 0; color: var(--muted); font-size: 12px; }
+    .primary-action { min-height: 42px; padding: 0 17px; color: white; background: var(--brand); border: 0; border-radius: 9px; font-size: 12px; font-weight: 650; cursor: pointer; box-shadow: 0 8px 20px rgba(19,122,63,.16); }
+    .primary-action:hover { background: var(--brand-dark); }
+
+    .review-card { overflow: hidden; background: var(--paper); border: 1px solid var(--hairline); border-radius: 16px; box-shadow: var(--shadow); }
+    .review-toolbar { min-height: 56px; display: flex; align-items: center; gap: 10px; padding: 0 16px; border-bottom: 1px solid var(--hairline); }
+    .file-kind { padding: 5px 8px; color: var(--brand); background: var(--brand-light); border-radius: 5px; font-size: 9px; font-weight: 700; }
+    .file-title { font-size: 12px; font-weight: 650; }
+    .file-meta { color: var(--muted); font-family: var(--mono); font-size: 9px; }
+    .spacer { flex: 1; }
+    .done { display: flex; align-items: center; gap: 6px; color: var(--brand); font-size: 10px; font-weight: 700; }
+    .done::before { content: ""; width: 7px; height: 7px; background: var(--normal); border-radius: 50%; }
+
+    .review-grid { display: grid; grid-template-columns: minmax(0, 1.75fr) 280px; min-height: 442px; }
+    .video { position: relative; min-height: 442px; overflow: hidden; background: #132b30; }
+    .video-field { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(3, 1fr); gap: 12px; padding: 38px 34px 48px; background: #3e5f56; transform: perspective(800px) rotateX(2deg); }
+    .panel { position: relative; overflow: hidden; background: #123e57; border: 3px solid #a5bec1; box-shadow: inset 0 0 0 1px #0b2635; }
+    .panel::after { content: ""; position: absolute; inset: 5px; opacity: .36; background-image: linear-gradient(90deg, transparent 48%, #83a5ae 49%, #83a5ae 51%, transparent 52%), linear-gradient(0deg, transparent 48%, #83a5ae 49%, #83a5ae 51%, transparent 52%); background-size: 25% 50%; }
+    .panel.dirty::before { content: ""; position: absolute; z-index: 2; right: 6%; top: 17%; width: 58%; height: 46%; background: rgba(181,148,88,.72); border-radius: 55% 35% 46% 30%; }
+    .panel.broken::before { content: ""; position: absolute; z-index: 2; left: 48%; top: -8%; width: 3px; height: 120%; background: #ffd7d7; transform: rotate(25deg); box-shadow: 16px 20px 0 -1px #ffd7d7; }
+    .box { position: absolute; z-index: 4; border: 2px solid var(--normal); }
+    .box.normal { left: 4.4%; top: 9%; width: 21.3%; height: 27%; }
+    .box.wash { left: 51%; top: 9%; width: 21.3%; height: 27%; border-color: var(--wash); }
+    .box.repair { left: 74.4%; top: 38%; width: 21.3%; height: 27%; border-color: var(--repair); }
+    .box span { position: absolute; left: -2px; top: -23px; padding: 4px 7px; color: white; background: var(--normal); font-family: var(--mono); font-size: 8px; font-weight: 800; white-space: nowrap; }
+    .box.wash span { color: #382707; background: var(--wash); }
+    .box.repair span { background: var(--repair); }
+    .video-top { position: absolute; z-index: 6; left: 16px; top: 16px; display: flex; align-items: center; gap: 8px; padding: 7px 9px; color: #dff7ea; background: rgba(8,35,33,.83); border-radius: 7px; font-family: var(--mono); font-size: 8px; }
+    .video-top::before { content: "N"; display: grid; place-items: center; width: 20px; height: 20px; color: white; border: 1px solid #7faba4; border-radius: 50%; font-size: 9px; }
+    .video-controls { position: absolute; z-index: 6; left: 16px; right: 16px; bottom: 14px; display: grid; grid-template-columns: 14px 1fr auto; align-items: center; gap: 9px; padding: 9px 11px; color: white; background: rgba(8,28,27,.86); border-radius: 8px; }
+    .play { width: 0; height: 0; border-top: 5px solid transparent; border-bottom: 5px solid transparent; border-left: 8px solid white; }
+    .timeline { height: 3px; background: rgba(255,255,255,.2); }
+    .timeline span { display: block; width: 68%; height: 100%; background: var(--lime); }
+    .time { font-family: var(--mono); font-size: 8px; }
+
+    .summary { display: flex; flex-direction: column; padding: 18px; background: var(--paper-soft); border-left: 1px solid var(--hairline); }
+    .summary-label { color: var(--muted); font-size: 10px; }
+    .summary h2 { margin: 4px 0 14px; font-size: 17px; font-weight: 650; }
+    .status-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 17px; }
+    .status-cell { padding: 9px; background: white; border: 1px solid var(--hairline); border-radius: 8px; }
+    .status-cell span { display: block; color: var(--muted); font-size: 9px; }
+    .status-cell strong { display: block; margin-top: 3px; font-family: var(--mono); font-size: 17px; }
+    .status-cell:nth-child(2) strong { color: var(--wash); }
+    .status-cell:nth-child(3) strong { color: var(--repair); }
+    .finding { display: flex; align-items: center; gap: 9px; padding: 10px 0; border-bottom: 1px solid var(--hairline); }
+    .finding-dot { width: 7px; height: 7px; border-radius: 50%; }
+    .finding:nth-of-type(1) .finding-dot, .finding:nth-of-type(2) .finding-dot { background: var(--wash); }
+    .finding:nth-of-type(3) .finding-dot, .finding:nth-of-type(4) .finding-dot { background: var(--repair); }
+    .finding-copy { flex: 1; min-width: 0; }
+    .finding-copy strong { display: block; font-size: 11px; }
+    .finding-copy span { display: block; margin-top: 2px; color: var(--muted); font-size: 9px; }
+    .finding b { font-family: var(--mono); font-size: 11px; }
+    .archive { margin-top: auto; min-height: 42px; color: white; background: var(--brand-dark); border: 0; border-radius: 8px; font-size: 11px; font-weight: 650; cursor: pointer; }
+
+    .batch { margin-top: 18px; }
+    .section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 9px; }
+    .section-head h2 { margin: 0; font-size: 14px; font-weight: 650; }
+    .section-head span { color: var(--muted); font-size: 10px; }
+    .batch-list { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+    .batch-item { min-width: 0; padding: 11px 12px; background: var(--paper); border: 1px solid var(--hairline); border-radius: 10px; }
+    .batch-item.active { border-color: rgba(19,122,63,.45); box-shadow: inset 0 0 0 1px rgba(19,122,63,.12); }
+    .batch-item span { color: var(--muted); font-size: 8px; font-weight: 650; }
+    .batch-item strong { display: block; margin: 6px 0 10px; overflow: hidden; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+    .batch-status { display: flex; justify-content: space-between; color: var(--muted); font-size: 9px; }
+    .batch-status b { color: var(--ink); }
+    .progress { height: 3px; margin-top: 7px; overflow: hidden; background: #e8eee9; border-radius: 3px; }
+    .progress span { display: block; width: var(--progress); height: 100%; background: var(--brand); }
+
+    .assistant { position: sticky; top: 72px; height: calc(100vh - 72px); display: flex; flex-direction: column; background: white; border-left: 1px solid var(--hairline); }
+    .assistant-head { display: flex; align-items: center; gap: 10px; min-height: 72px; padding: 0 18px; border-bottom: 1px solid var(--hairline); }
+    .assistant-mark { display: grid; place-items: center; width: 36px; height: 36px; color: white; background: var(--brand-dark); border-radius: 10px; font-size: 10px; font-weight: 750; box-shadow: 0 7px 16px rgba(11,75,49,.14); }
+    .assistant-name strong { display: block; font-size: 13px; font-weight: 650; }
+    .assistant-name span { display: block; margin-top: 2px; color: var(--muted); font-size: 9px; }
+    .local { margin-left: auto; padding: 5px 7px; color: var(--brand); background: var(--brand-light); border-radius: 5px; font-size: 8px; font-weight: 650; }
+    .chat { flex: 1; overflow-y: auto; padding: 18px; }
+    .day-label { margin-bottom: 14px; color: #a0aaa4; font-family: var(--mono); font-size: 7px; text-align: center; }
+    .message { max-width: 91%; margin-bottom: 12px; padding: 10px 11px; border-radius: 10px; font-size: 11px; line-height: 1.6; }
+    .message.ai { background: var(--paper-soft); border: 1px solid var(--hairline); }
+    .message.user { margin-left: auto; color: white; background: var(--brand-dark); border-bottom-right-radius: 3px; }
+    .insight { margin: 5px 0 14px; padding: 14px; background: var(--sky); border-radius: 12px; }
+    .insight-label { color: var(--brand); font-size: 8px; font-weight: 700; letter-spacing: .1em; }
+    .insight h3 { margin: 6px 0 5px; font-size: 13px; font-weight: 650; }
+    .insight p { margin: 0; color: var(--muted); font-size: 10px; line-height: 1.6; }
+    .draft { margin-top: 11px; padding-top: 10px; border-top: 1px solid #cce0e2; }
+    .draft-row { display: flex; justify-content: space-between; margin: 5px 0; color: var(--muted); font-size: 9px; }
+    .draft-row b { color: var(--ink); }
+    .draft-actions { display: grid; grid-template-columns: 1fr 1.2fr; gap: 7px; margin-top: 10px; }
+    .draft-actions button { min-height: 34px; background: white; border: 1px solid #c7dbcf; border-radius: 7px; font-size: 9px; cursor: pointer; }
+    .draft-actions .approve { color: white; background: var(--brand); border-color: var(--brand); }
+    .quick { display: flex; gap: 6px; padding: 0 16px 10px; overflow-x: auto; scrollbar-width: none; }
+    .quick button { flex: 0 0 auto; min-height: 30px; padding: 0 10px; color: var(--brand-dark); background: white; border: 1px solid var(--hairline); border-radius: 99px; font-size: 9px; cursor: pointer; }
+    .composer { margin: 0 14px 14px; padding: 10px; border: 1px solid #cbdacf; border-radius: 12px; box-shadow: 0 10px 25px rgba(20,58,39,.06); }
+    .composer textarea { width: 100%; height: 52px; resize: none; color: var(--ink); background: transparent; border: 0; outline: 0; font-size: 11px; }
+    .composer-bottom { display: flex; align-items: center; justify-content: space-between; }
+    .composer-bottom span { color: var(--muted); font-size: 8px; }
+    .send { min-height: 30px; padding: 0 13px; color: white; background: var(--brand-dark); border: 0; border-radius: 7px; font-size: 9px; cursor: pointer; }
+
+    .secondary { padding: 28px; }
+    .secondary-grid { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 12px; }
+    .secondary-card { min-height: 220px; padding: 20px; background: white; border: 1px solid var(--hairline); border-radius: 14px; box-shadow: var(--shadow); }
+    .secondary-card h3 { margin: 0 0 9px; font-size: 14px; }
+    .secondary-card p { color: var(--muted); font-size: 10px; line-height: 1.6; }
+    .data-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--hairline); font-size: 9px; }
+    .data-row span { color: var(--muted); }
+
+    .modal { position: fixed; inset: 0; z-index: 100; display: none; place-items: center; padding: 24px; background: rgba(11,45,32,.42); backdrop-filter: blur(7px); }
+    .modal.open { display: grid; }
+    .upload-panel { width: min(720px, 94vw); padding: 24px; background: white; border-radius: 18px; box-shadow: 0 30px 80px rgba(7,42,27,.22); }
+    .modal-head { display: flex; align-items: flex-start; justify-content: space-between; }
+    .modal-head h2 { margin: 0; font-size: 20px; }
+    .modal-head p { margin: 5px 0 0; color: var(--muted); font-size: 10px; }
+    .close { width: 34px; height: 34px; color: var(--muted); background: var(--paper-soft); border: 0; border-radius: 50%; cursor: pointer; }
+    .dropzone { min-height: 230px; display: grid; place-items: center; margin: 22px 0 14px; padding: 28px; background: var(--paper-soft); border: 1.5px dashed #a8c3ae; border-radius: 14px; text-align: center; }
+    .drop-icon { display: grid; place-items: center; width: 58px; height: 58px; margin: 0 auto 13px; color: var(--brand); background: var(--brand-light); border-radius: 50%; font-size: 22px; }
+    .dropzone strong { display: block; font-size: 13px; }
+    .dropzone span { display: block; margin-top: 6px; color: var(--muted); font-size: 9px; }
+    .note-input { width: 100%; min-height: 42px; padding: 0 12px; color: var(--ink); background: white; border: 1px solid var(--hairline); border-radius: 9px; outline: 0; }
+    .modal-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 14px; color: var(--muted); font-size: 8px; }
+
+    .toast { position: fixed; z-index: 120; left: 50%; bottom: 28px; display: none; padding: 11px 16px; color: white; background: var(--brand-dark); border-radius: 9px; box-shadow: var(--shadow); font-size: 10px; transform: translateX(-50%); }
+    .toast.show { display: block; }
+
+    @media (max-width: 1240px) {
+      .topbar { grid-template-columns: 78px minmax(0, 1fr) auto; }
+      .brand-copy, .nav-item span:last-child, .nav-caption, .sidebar-bottom { display: none; }
+      .body { grid-template-columns: 78px minmax(0, 1fr); }
+      .sidebar { align-items: center; }
+      .nav-item { justify-content: center; width: 48px; padding: 0; }
+      .review-grid { grid-template-columns: minmax(0, 1fr) 240px; }
+      .recognition-layout { grid-template-columns: minmax(0, 1fr) 324px; }
+    }
+    @media (max-width: 980px) {
+      .system-strip { display: none; }
+      .recognition-layout { display: block; }
+      .assistant { position: relative; top: auto; height: 680px; }
+      .batch-list { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    /* V4 · 工业级暗色巡检控制台 */
+    :root {
+      --canvas: #051722;
+      --paper: #082331;
+      --paper-soft: #0a2a38;
+      --ink: #edf7f4;
+      --muted: #8aa6ae;
+      --hairline: #173d4c;
+      --brand: #82c843;
+      --brand-dark: #0b7858;
+      --brand-light: #123c36;
+      --lime: #8bd24d;
+      --sky: #092938;
+      --normal: #47d46f;
+      --wash: #f3a72e;
+      --repair: #ff5144;
+      --shadow: none;
+    }
+    .topbar {
+      background: #041925; border-bottom-color: #164353;
+      box-shadow: inset 0 -2px 0 #0d5b90;
+      backdrop-filter: none;
+    }
+    .brand-mark {
+      width: 38px; height: 38px; overflow: visible;
+      background: var(--brand); border: 0; border-radius: 50%;
+      box-shadow: 0 0 0 1px rgba(143,210,78,.24), 0 0 22px rgba(130,200,67,.14);
+    }
+    .brand-mark::before {
+      left: 12px; top: 7px; bottom: auto; width: 16px; height: 24px;
+      border: 0; background: #0c2b27; transform: none;
+      clip-path: polygon(45% 0, 100% 0, 65% 38%, 92% 38%, 28% 100%, 43% 56%, 13% 56%);
+    }
+    .brand-mark::after { display: none; }
+    .brand-copy strong { color: #f2faf7; font-size: 17px; letter-spacing: .05em; }
+    .brand-copy span { color: #6f919b; font-family: var(--sans); font-size: 9px; letter-spacing: .12em; }
+    .context { padding-left: 0; border-left: 0; text-align: center; }
+    .context strong { color: #f4faf8; font-size: 18px; font-weight: 650; letter-spacing: .06em; }
+    .context span { color: #7295a0; font-size: 10px; }
+    .system-item { border-left-color: #194251; }
+    .system-item span { color: #6f929d; font-size: 10px; }
+    .system-item strong { color: #d8e8e5; font-size: 11px; }
+    .live { color: var(--brand) !important; }
+    .avatar { background: #0b3140; border: 1px solid #24556a; border-radius: 4px; }
+    .body { background: var(--canvas); }
+    .sidebar { background: #061c29; border-right-color: var(--hairline); }
+    .nav-caption { color: #62818c; font-size: 10px; }
+    .nav-item { color: #89a5ad; border-radius: 3px; }
+    .nav-item.active { color: white; background: #0c2b3a; }
+    .nav-item.active::after { width: 2px; height: 24px; background: var(--brand); border-radius: 0; }
+    .nav-item.active .nav-icon { color: #0a2a27; background: var(--brand); border-radius: 2px; box-shadow: none; }
+    .nav-item span:last-child { font-size: 13px; font-weight: 550; }
+    .sidebar-bottom { background: #082936; border: 1px solid #174454; border-radius: 3px; }
+    .sidebar-bottom strong { color: #dbe9e6; font-size: 11px; }
+    .sidebar-bottom p { color: #73939b; font-size: 10px; }
+    .signal { box-shadow: 0 0 0 3px rgba(71,212,111,.1); }
+    .recognition-layout { background: #061a25; }
+    .workspace { padding: 20px 20px 24px; }
+    .page-heading { margin-bottom: 14px; }
+    .heading-copy span { color: var(--brand); font-size: 11px; letter-spacing: .08em; }
+    .heading-copy h1 { margin-top: 4px; color: #eff8f5; font-size: 25px; font-weight: 600; letter-spacing: .01em; }
+    .heading-copy p { color: #7f9ca4; font-size: 12px; }
+    .primary-action { min-height: 40px; color: #06231c; background: var(--brand); border-radius: 3px; font-size: 12px; box-shadow: none; }
+    .primary-action:hover { color: white; background: var(--brand-dark); }
+    .review-card { background: #071f2c; border-color: #174252; border-radius: 4px; }
+    .review-toolbar { min-height: 50px; background: #082533; border-bottom-color: #174252; }
+    .file-kind { color: #0b2b26; background: var(--brand); border-radius: 2px; font-size: 10px; }
+    .file-title { color: #edf7f4; font-size: 12px; }
+    .file-meta { color: #7998a1; font-size: 10px; }
+    .done { color: var(--normal); font-size: 11px; }
+    .review-grid { grid-template-columns: minmax(0, 1.8fr) 286px; }
+    .video {
+      min-height: 442px;
+      background-color: #061720;
+      background-image: url("assets/reference-console.png");
+      background-position: 50% 52%;
+      background-size: 198% auto;
+      background-repeat: no-repeat;
+    }
+    .video-field, .box { display: none; }
+    .video-top { color: #d7edec; background: rgba(3,25,32,.86); border: 1px solid #1d5263; border-radius: 2px; font-size: 10px; }
+    .video-controls { background: rgba(3,22,29,.9); border: 1px solid #1a4655; border-radius: 2px; }
+    .time { font-size: 10px; }
+    .summary { background: #082532; border-left-color: #174252; }
+    .summary-label { color: #78969f; font-size: 10px; }
+    .summary h2 { color: #eef7f5; font-size: 16px; }
+    .status-cell { background: #0a2d3a; border-color: #1b4a58; border-radius: 2px; }
+    .status-cell span { color: #82a0a8; font-size: 10px; }
+    .finding { border-bottom-color: #16414f; }
+    .finding-copy strong { color: #e8f3f0; font-size: 12px; }
+    .finding-copy span { color: #77959d; font-size: 10px; }
+    .finding b { color: #dceae7; font-size: 12px; }
+    .archive { color: #071f1a; background: var(--brand); border-radius: 2px; font-size: 12px; }
+    .section-head h2 { color: #edf6f3; font-size: 14px; }
+    .section-head span { color: #77959e; font-size: 10px; }
+    .batch-list { gap: 7px; }
+    .batch-item { background: #082431; border-color: #173f4d; border-radius: 3px; }
+    .batch-item.active { border-color: #3d8a5d; box-shadow: inset 0 2px 0 var(--brand); }
+    .batch-item span { color: var(--brand); font-size: 10px; }
+    .batch-item strong { color: #e0ece9; font-size: 11px; }
+    .batch-status { color: #77949d; font-size: 10px; }
+    .batch-status b { color: #dfecea; }
+    .progress { background: #163a46; border-radius: 0; }
+    .progress span { background: var(--brand); }
+    .assistant { background: #061d29; border-left-color: #174252; }
+    .assistant-head { border-bottom-color: #174252; }
+    .assistant-mark { color: #092a23; background: var(--brand); border-radius: 3px; box-shadow: none; }
+    .assistant-name strong { color: #eef7f5; font-size: 13px; }
+    .assistant-name span { color: #78969f; font-size: 10px; }
+    .local { color: var(--brand); background: #11352f; border: 1px solid #25624d; border-radius: 2px; font-size: 9px; }
+    .day-label { color: #668891; font-size: 10px; }
+    .message { border-radius: 3px; font-size: 12px; }
+    .message.ai { background: #082a37; border-color: #194756; }
+    .message.user { background: #0d5e4a; border-bottom-right-radius: 0; }
+    .insight { background: #082d39; border: 1px solid #1a4a57; border-radius: 3px; }
+    .insight-label { color: var(--brand); font-size: 10px; }
+    .insight h3 { color: #f0b243; font-size: 14px; }
+    .insight p { color: #8ba5ac; font-size: 11px; }
+    .draft { border-top-color: #1a4855; }
+    .draft-row { color: #7f9ca4; font-size: 11px; }
+    .draft-row b { color: #deebe8; }
+    .draft-actions button { color: #cfdfdc; background: #0a2733; border-color: #215061; border-radius: 2px; font-size: 10px; }
+    .draft-actions .approve { color: #08271f; background: var(--brand); border-color: var(--brand); }
+    .quick button { min-height: 32px; color: #a8c0c4; background: #082430; border-color: #194451; border-radius: 2px; font-size: 10px; }
+    .composer { background: #082531; border-color: #1b4a59; border-radius: 3px; box-shadow: none; }
+    .composer textarea { color: #e7f1ef; font-size: 12px; }
+    .composer-bottom span { color: #6f9099; font-size: 10px; }
+    .send { min-height: 32px; color: #06231c; background: var(--brand); border-radius: 2px; font-size: 10px; }
+    .secondary { min-height: calc(100vh - 72px); background: #061a25; }
+    .secondary-card { background: #082431; border-color: #174252; border-radius: 3px; }
+    .secondary-card h3 { color: #edf7f4; }
+    .secondary-card p { color: #829da5; font-size: 11px; }
+    .data-row { border-bottom-color: #17414f; font-size: 11px; }
+    .data-row span { color: #79969e; }
+    .upload-panel { background: #082532; border: 1px solid #24515f; border-radius: 5px; box-shadow: 0 30px 80px rgba(0,0,0,.45); }
+    .modal-head h2 { color: #eef7f4; }
+    .modal-head p { color: #86a1a8; font-size: 11px; }
+    .close { color: #8da7ad; background: #0c313e; }
+    .dropzone { background: #061e2a; border-color: #357064; border-radius: 3px; }
+    .drop-icon { color: #09271f; background: var(--brand); }
+    .dropzone strong { color: #e8f3f0; }
+    .dropzone span { color: #809ba3; font-size: 10px; }
+    .note-input { color: #dce9e7; background: #061e2a; border-color: #1d4b58; border-radius: 3px; }
+    .modal-foot { color: #7e9aa2; font-size: 10px; }
+    .toast { background: #0b624b; border: 1px solid #3b916c; border-radius: 3px; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true"></div>
+        <div class="brand-copy"><strong>绿能先锋</strong><span>光伏智能巡检</span></div>
+      </div>
+      <div class="context"><strong>无人机巡检复核台</strong><span>示范光伏电站 · 北区 A2阵列 · 第0824批次</span></div>
+      <div class="system-strip">
+        <div class="system-item"><span>推理服务</span><strong class="live">● 本地在线</strong></div>
+        <div class="system-item"><span>识别模型</span><strong>轻量模型 v0.3</strong></div>
+        <div class="system-item"><span>今日任务</span><strong>04 / 06</strong></div>
+        <div class="avatar">控</div>
+      </div>
+    </header>
+
+    <div class="body">
+      <aside class="sidebar">
+        <div class="nav-caption">核心工作</div>
+        <button class="nav-item active" data-page="recognition"><span class="nav-icon">01</span><span>识别中心</span></button>
+        <button class="nav-item" data-page="tasks"><span class="nav-icon">02</span><span>任务中心</span></button>
+        <button class="nav-item" data-page="reports"><span class="nav-icon">03</span><span>报告中心</span></button>
+        <div class="nav-caption">数据管理</div>
+        <button class="nav-item"><span class="nav-icon">04</span><span>历史数据</span></button>
+        <button class="nav-item"><span class="nav-icon">05</span><span>系统设置</span></button>
+        <div class="sidebar-bottom"><strong><span class="signal"></span>系统运行正常</strong><p>240块组件已建档<br />最近同步 10:28</p></div>
+      </aside>
+
+      <main class="content">
+        <section id="recognition" class="page active">
+          <div class="recognition-layout">
+            <div class="workspace">
+              <header class="page-heading">
+                <div class="heading-copy"><span>巡检任务 GI-2026-0824</span><h1>实时识别与复核</h1><p>查看识别结果，确认异常组件，并交由智能体生成后续任务。</p></div>
+                <button class="primary-action" id="openUpload">上传巡检资料</button>
+              </header>
+
+              <article class="review-card">
+                <div class="review-toolbar"><span class="file-kind">巡检视频</span><span class="file-title">north_a2_inspection.mp4</span><span class="file-meta">1080P · 02:38 · 北区 A2</span><span class="spacer"></span><span class="done">分析完成</span></div>
+                <div class="review-grid">
+                  <div class="video">
+                    <div class="video-field">
+                      <div class="panel"></div><div class="panel"></div><div class="panel dirty"></div><div class="panel"></div>
+                      <div class="panel"></div><div class="panel"></div><div class="panel"></div><div class="panel broken"></div>
+                      <div class="panel"></div><div class="panel dirty"></div><div class="panel"></div><div class="panel"></div>
+                    </div>
+                    <div class="box normal"><span>正常 96%</span></div><div class="box wash"><span>需要清洗 91%</span></div><div class="box repair"><span>需要维修 88%</span></div>
+                    <div class="video-top">无人机 UAV-01 · 航线 A-12 · 航点 067</div>
+                    <div class="video-controls"><span class="play"></span><div class="timeline"><span></span></div><span class="time">01:47 / 02:38</span></div>
+                  </div>
+                  <aside class="summary">
+                    <span class="summary-label">当前视频</span><h2>识别摘要</h2>
+                    <div class="status-row"><div class="status-cell"><span>正常</span><strong>28</strong></div><div class="status-cell"><span>清洗</span><strong>06</strong></div><div class="status-cell"><span>维修</span><strong>02</strong></div></div>
+                    <div class="finding"><span class="finding-dot"></span><div class="finding-copy"><strong>需要清洗</strong><span>内部原因 · 积灰</span></div><b>4</b></div>
+                    <div class="finding"><span class="finding-dot"></span><div class="finding-copy"><strong>需要清洗</strong><span>内部原因 · 鸟粪</span></div><b>2</b></div>
+                    <div class="finding"><span class="finding-dot"></span><div class="finding-copy"><strong>需要维修</strong><span>内部原因 · 裂纹</span></div><b>1</b></div>
+                    <div class="finding"><span class="finding-dot"></span><div class="finding-copy"><strong>需要维修</strong><span>内部原因 · 遮挡</span></div><b>1</b></div>
+                    <button class="archive" id="archiveBtn">确认结果并归档</button>
+                  </aside>
+                </div>
+              </article>
+
+              <section class="batch">
+                <div class="section-head"><h2>本次上传</h2><span>4个文件 · 区域备注已解析</span></div>
+                <div class="batch-list">
+                  <article class="batch-item active"><span>视频</span><strong>north_a2_inspection.mp4</strong><div class="batch-status"><em>分析完成</em><b>100%</b></div><div class="progress" style="--progress:100%"><span></span></div></article>
+                  <article class="batch-item"><span>图片</span><strong>panel_021.jpg</strong><div class="batch-status"><em>待确认</em><b>100%</b></div><div class="progress" style="--progress:100%"><span></span></div></article>
+                  <article class="batch-item"><span>图片</span><strong>panel_022.jpg</strong><div class="batch-status"><em>正在识别</em><b>68%</b></div><div class="progress" style="--progress:68%"><span></span></div></article>
+                  <article class="batch-item"><span>图片</span><strong>panel_023.jpg</strong><div class="batch-status"><em>排队中</em><b>0%</b></div><div class="progress" style="--progress:0%"><span></span></div></article>
+                </div>
+              </section>
+            </div>
+
+            <aside class="assistant">
+              <div class="assistant-head"><div class="assistant-mark">智</div><div class="assistant-name"><strong>绿能巡检助手</strong><span>数据查询与任务编排</span></div><span class="local">本地模型</span></div>
+              <div class="chat">
+                <div class="day-label">今天 · 10:28</div>
+                <div class="message ai">已从备注“示范电站北区A2，第2阵列”中完成区域归档。当前批次发现8块异常组件。</div>
+                <div class="message user">分析北区最近30天情况，并安排需要复查的区域。</div>
+                <article class="insight"><span class="insight-label">数据洞察</span><h3>北区异常率较上期上升4.2%</h3><p>A2阵列积灰增长最明显；A3阵列有2块组件连续两次被判定为需要维修。</p><div class="draft"><div class="draft-row"><span>任务草稿</span><b>#IN-024</b></div><div class="draft-row"><span>执行对象</span><b>无人机01</b></div><div class="draft-row"><span>巡查范围</span><b>北区A2、A3</b></div><div class="draft-row"><span>预计耗时</span><b>18分钟</b></div></div><div class="draft-actions"><button>查看详情</button><button class="approve" id="approveBtn">确认并执行</button></div></article>
+                <div class="message ai">任务执行后，我会自动分析回传影像并生成网页报告、Excel和PDF。</div>
+              </div>
+              <div class="quick"><button data-prompt="分析北区近30天情况">北区概况</button><button data-prompt="生成北区重点巡查任务">生成巡查任务</button><button data-prompt="查看需要维修组件的变化趋势">维修趋势</button></div>
+              <div class="composer"><textarea id="promptInput" placeholder="询问区域情况，或下达巡查指令……"></textarea><div class="composer-bottom"><span>本地模型优先 · API自动兜底</span><button class="send" id="sendBtn">发送</button></div></div>
+            </aside>
+          </div>
+        </section>
+
+        <section id="tasks" class="page secondary">
+          <header class="page-heading"><div class="heading-copy"><span>巡查任务 · 全流程跟踪</span><h1>任务中心</h1><p>审批、执行并跟踪无人机巡查任务。</p></div></header>
+          <div class="secondary-grid">
+            <article class="secondary-card"><h3>执行中 · #IN-023</h3><p>北区A1阵列例行巡查，已回传42张图片和1段视频。</p><div class="data-row"><span>执行进度</span><b>76%</b></div><div class="data-row"><span>异常组件</span><b>5</b></div><div class="data-row"><span>预计完成</span><b>10:46</b></div></article>
+            <article class="secondary-card"><h3>待确认 · #IN-024</h3><p>智能体根据北区近30天异常趋势生成。</p><div class="data-row"><span>巡查范围</span><b>A2、A3</b></div><div class="data-row"><span>预计耗时</span><b>18分钟</b></div></article>
+            <article class="secondary-card"><h3>已完成 · #IN-022</h3><p>西区清洗后复检，所有任务数据已归档。</p><div class="data-row"><span>正常率改善</span><b>+12.8%</b></div><div class="data-row"><span>报告状态</span><b>已生成</b></div></article>
+          </div>
+        </section>
+
+        <section id="reports" class="page secondary">
+          <header class="page-heading"><div class="heading-copy"><span>巡检报告 · 数据归档</span><h1>报告中心</h1><p>查看异常证据、区域趋势，并导出Excel或PDF。</p></div></header>
+          <div class="secondary-grid">
+            <article class="secondary-card"><h3>北区30天巡检报告</h3><p>覆盖60块组件、486条识别记录，积灰问题主要集中在A2阵列。</p><div class="data-row"><span>需要清洗</span><b>11</b></div><div class="data-row"><span>需要维修</span><b>3</b></div></article>
+            <article class="secondary-card"><h3>清洗效果复检</h3><p>清洗后正常率由81.3%提升至94.1%。</p><div class="data-row"><span>改善幅度</span><b>+12.8%</b></div><div class="data-row"><span>异常截图</span><b>18张</b></div></article>
+            <article class="secondary-card"><h3>报告导出</h3><p>网页统计和导出文件使用同一数据口径。</p><div class="data-row"><span>PDF报告</span><b>生成</b></div><div class="data-row"><span>Excel明细</span><b>生成</b></div></article>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <div class="modal" id="uploadModal" role="dialog" aria-modal="true" aria-label="上传巡检资料">
+    <div class="upload-panel">
+      <div class="modal-head"><div><h2>上传巡检资料</h2><p>支持多张图片与一个2～3分钟视频混合上传。</p></div><button class="close" id="closeUpload">×</button></div>
+      <div class="dropzone"><div><div class="drop-icon">＋</div><strong>拖放无人机巡检文件到这里</strong><span>图片 JPG / PNG · 视频 MP4 / MOV · 单次最多1个视频</span></div></div>
+      <input class="note-input" value="示范电站北区A2，第2阵列，组件编号A2-021至A2-036" aria-label="区域备注" />
+      <div class="modal-foot"><span>智能体将从备注中提取电站、区域、阵列和组件编号</span><button class="primary-action" id="startUpload">开始上传并分析</button></div>
+    </div>
+  </div>
+  <div class="toast" id="toast">操作已完成</div>
+
+  <script>
+    const toast = document.getElementById("toast");
+    function notify(text) {
+      toast.textContent = text;
+      toast.classList.add("show");
+      window.setTimeout(() => toast.classList.remove("show"), 1800);
+    }
+    document.querySelectorAll("[data-page]").forEach((button) => button.addEventListener("click", () => {
+      document.querySelectorAll("[data-page]").forEach((item) => item.classList.toggle("active", item === button));
+      document.querySelectorAll(".page").forEach((page) => page.classList.toggle("active", page.id === button.dataset.page));
+    }));
+    const modal = document.getElementById("uploadModal");
+    document.getElementById("openUpload").addEventListener("click", () => modal.classList.add("open"));
+    document.getElementById("closeUpload").addEventListener("click", () => modal.classList.remove("open"));
+    modal.addEventListener("click", (event) => { if (event.target === modal) modal.classList.remove("open"); });
+    document.getElementById("startUpload").addEventListener("click", () => { modal.classList.remove("open"); notify("文件已加入识别队列"); });
+    document.getElementById("archiveBtn").addEventListener("click", () => notify("识别结果已归档"));
+    document.getElementById("approveBtn").addEventListener("click", () => notify("任务 #IN-024 已进入模拟执行"));
+    document.querySelectorAll("[data-prompt]").forEach((button) => button.addEventListener("click", () => { document.getElementById("promptInput").value = button.dataset.prompt; }));
+    document.getElementById("sendBtn").addEventListener("click", () => notify("指令已提交给本地模型"));
+  </script>
+</body>
+</html>

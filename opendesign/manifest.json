@@ -1,0 +1,78 @@
+{
+  "generated": "2026-08-09T06:13:53Z",
+  "sections": [
+    {
+      "id": "mockups",
+      "label": "Mockups",
+      "groups": [
+        {
+          "slug": "green-pioneer-people-admin",
+          "files": [
+            {
+              "label": "绿能先锋 · 控制人员管理后台四页面原型",
+              "path": "mockups/green-pioneer-people-admin/index.html"
+            }
+          ]
+        },
+        {
+          "slug": "green-pioneer-django-admin-directions",
+          "files": [
+            {
+              "label": "绿能先锋 · Django Admin 五种首页方向",
+              "path": "mockups/green-pioneer-django-admin-directions/index.html"
+            }
+          ]
+        },
+        {
+          "slug": "green-pioneer-admin-directions",
+          "files": [
+            {
+              "label": "绿能先锋 · Django 管理后台五种原型方向",
+              "path": "mockups/green-pioneer-admin-directions/index.html"
+            }
+          ]
+        },
+        {
+          "slug": "solar-inspection-styles",
+          "files": [
+            {
+              "label": "绿能先锋 · 工业控制台 V4",
+              "path": "mockups/solar-inspection-styles/index.html"
+            },
+            {
+              "label": "绿能先锋 · 品牌精修 V3",
+              "path": "mockups/solar-inspection-styles/index-v3.html"
+            },
+            {
+              "label": "绿能先锋 · 高级控制台 V2",
+              "path": "mockups/solar-inspection-styles/index-v2.html"
+            },
+            {
+              "label": "光伏智巡 · 六种风格 V1",
+              "path": "mockups/solar-inspection-styles/index-v1.html"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "design-systems",
+      "label": "Design Systems",
+      "groups": [
+        {
+          "slug": "green-pioneer-ops",
+          "files": [
+            {
+              "label": "设计系统说明",
+              "path": "design-systems/green-pioneer-ops/SKILL.md"
+            },
+            {
+              "label": "颜色与字体 tokens",
+              "path": "design-systems/green-pioneer-ops/tokens/colors_and_type.css"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

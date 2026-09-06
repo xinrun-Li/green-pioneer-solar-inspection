@@ -1,0 +1,441 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>光伏智巡 · 六种界面方向</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: oklch(0.975 0.008 210);
+      --panel: oklch(0.995 0.003 210);
+      --panel-2: oklch(0.95 0.012 210);
+      --text: oklch(0.25 0.03 235);
+      --muted: oklch(0.53 0.025 235);
+      --line: oklch(0.89 0.014 220);
+      --accent: oklch(0.62 0.16 166);
+      --accent-ink: oklch(0.3 0.08 166);
+      --warning: oklch(0.72 0.17 72);
+      --danger: oklch(0.59 0.21 28);
+      --normal: oklch(0.64 0.17 153);
+      --radius: 14px;
+      --shadow: 0 14px 35px oklch(0.22 0.04 230 / 0.08);
+      --font: "Avenir Next", "PingFang SC", sans-serif;
+      --mono: "SFMono-Regular", "Menlo", monospace;
+      --side: 220px;
+      --assistant: 356px;
+      --gap: 16px;
+    }
+
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font); }
+    button, input, textarea { font: inherit; }
+    button { color: inherit; }
+    .prototype-bar {
+      position: sticky; top: 0; z-index: 100;
+      display: flex; align-items: center; gap: 10px;
+      min-height: 58px; padding: 8px 18px;
+      color: #ecf7f5; background: #102421; border-bottom: 1px solid #29413d;
+    }
+    .prototype-title { min-width: 210px; }
+    .prototype-title strong { display: block; font-size: 13px; letter-spacing: .04em; }
+    .prototype-title span { display: block; margin-top: 2px; color: #9eb6b1; font-size: 11px; }
+    .style-switcher { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+    .style-switcher button {
+      flex: 0 0 auto; min-height: 38px; padding: 0 13px;
+      color: #bcd0cc; background: transparent; border: 1px solid #35514b; border-radius: 7px;
+      cursor: pointer;
+    }
+    .style-switcher button.active { color: #102421; background: #abebc7; border-color: #abebc7; }
+    .style-note { margin-left: auto; color: #9eb6b1; font-size: 11px; white-space: nowrap; }
+
+    .app-shell { min-height: calc(100vh - 58px); display: grid; grid-template-columns: var(--side) minmax(0, 1fr); }
+    .sidebar {
+      position: sticky; top: 58px; height: calc(100vh - 58px); padding: 24px 14px;
+      background: var(--panel); border-right: 1px solid var(--line);
+    }
+    .brand { display: flex; align-items: center; gap: 11px; padding: 0 10px 24px; }
+    .brand-mark {
+      display: grid; place-items: center; width: 38px; height: 38px;
+      color: white; background: var(--accent); border-radius: 8px; font-family: var(--mono); font-weight: 800;
+    }
+    .brand-name strong { display: block; font-size: 15px; }
+    .brand-name span { color: var(--muted); font-size: 11px; }
+    .nav-label { padding: 13px 10px 7px; color: var(--muted); font-size: 10px; letter-spacing: .13em; text-transform: uppercase; }
+    .nav-item {
+      width: 100%; min-height: 44px; display: flex; align-items: center; gap: 10px;
+      margin: 3px 0; padding: 0 11px; background: transparent; border: 0; border-radius: 8px;
+      color: var(--muted); text-align: left; cursor: pointer;
+    }
+    .nav-item::before { content: ""; width: 7px; height: 7px; border: 1.5px solid currentColor; transform: rotate(45deg); }
+    .nav-item.active { color: var(--accent-ink); background: color-mix(in oklch, var(--accent) 14%, var(--panel)); font-weight: 650; }
+    .site-status { position: absolute; left: 24px; right: 24px; bottom: 24px; color: var(--muted); font-size: 11px; line-height: 1.55; }
+    .online-dot { display: inline-block; width: 7px; height: 7px; margin-right: 6px; background: var(--normal); border-radius: 50%; }
+
+    .page { display: none; min-width: 0; }
+    .page.active { display: block; }
+    .page-main { min-height: calc(100vh - 58px); display: grid; grid-template-columns: minmax(0, 1fr) var(--assistant); }
+    .workspace { min-width: 0; padding: 22px; }
+    .page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; margin-bottom: 18px; }
+    .eyebrow { color: var(--accent-ink); font-family: var(--mono); font-size: 10px; letter-spacing: .13em; text-transform: uppercase; }
+    h1 { margin: 5px 0 4px; font-size: 27px; line-height: 1.1; letter-spacing: -.025em; }
+    .page-header p { margin: 0; color: var(--muted); font-size: 13px; }
+    .header-metrics { display: flex; gap: 8px; }
+    .metric-mini { min-width: 88px; padding: 10px 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 9px; }
+    .metric-mini span { display: block; color: var(--muted); font-size: 10px; }
+    .metric-mini strong { display: block; margin-top: 3px; font-family: var(--mono); font-size: 17px; }
+
+    .stage { min-height: 448px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+    .stage-toolbar { min-height: 48px; display: flex; align-items: center; gap: 10px; padding: 0 14px; border-bottom: 1px solid var(--line); }
+    .file-name { font-size: 12px; font-weight: 650; }
+    .file-meta { color: var(--muted); font-family: var(--mono); font-size: 10px; }
+    .stage-toolbar .spacer { flex: 1; }
+    .status-pill { padding: 5px 8px; background: color-mix(in oklch, var(--normal) 12%, var(--panel)); color: var(--accent-ink); border: 1px solid color-mix(in oklch, var(--normal) 42%, var(--line)); border-radius: 999px; font-size: 10px; font-weight: 700; }
+    .stage-content { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(230px, .75fr); min-height: 398px; }
+    .media-view { position: relative; min-height: 398px; overflow: hidden; background: #17252c; }
+    .panel-field {
+      position: absolute; inset: 0; display: grid; grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(3, 1fr); gap: 13px;
+      padding: 38px; transform: perspective(850px) rotateX(2deg) rotateZ(-1deg);
+      background: linear-gradient(165deg, #50665e 0 22%, #293e38 22% 100%);
+    }
+    .solar-panel { position: relative; background: #17394b; border: 3px solid #9ab3b6; box-shadow: inset 0 0 0 1px #071c28; }
+    .solar-panel::after {
+      content: ""; position: absolute; inset: 4px;
+      background-image: linear-gradient(90deg, transparent 48%, #7da0a6 49%, #7da0a6 51%, transparent 52%), linear-gradient(0deg, transparent 48%, #7da0a6 49%, #7da0a6 51%, transparent 52%);
+      background-size: 25% 50%; opacity: .36;
+    }
+    .solar-panel.dirty { filter: sepia(.4); }
+    .solar-panel.dirty::before { content: ""; position: absolute; z-index: 2; width: 54%; height: 44%; right: 8%; top: 20%; background: #b9955d99; border-radius: 48% 30% 55% 28%; }
+    .solar-panel.broken::before { content: ""; position: absolute; z-index: 2; left: 18%; top: 8%; width: 3px; height: 88%; background: #f0caca; transform: rotate(24deg); box-shadow: 18px 16px 0 -1px #f0caca; }
+    .detect-box { position: absolute; z-index: 5; border: 2px solid var(--normal); pointer-events: none; }
+    .detect-box.clean { left: 5%; top: 10%; width: 21%; height: 27%; }
+    .detect-box.wash { left: 51%; top: 10%; width: 21%; height: 27%; border-color: var(--warning); }
+    .detect-box.repair { left: 74.5%; top: 39%; width: 21%; height: 27%; border-color: var(--danger); }
+    .detect-label { position: absolute; left: -2px; top: -25px; padding: 4px 7px; color: #071515; background: var(--normal); font-family: var(--mono); font-size: 9px; font-weight: 800; white-space: nowrap; }
+    .wash .detect-label { background: var(--warning); }
+    .repair .detect-label { color: white; background: var(--danger); }
+    .video-controls { position: absolute; z-index: 8; left: 18px; right: 18px; bottom: 15px; display: flex; align-items: center; gap: 10px; padding: 9px 11px; color: #e7f0ee; background: #0b1918dd; border: 1px solid #ffffff22; border-radius: 6px; }
+    .play { width: 0; height: 0; margin-left: 2px; border-top: 6px solid transparent; border-bottom: 6px solid transparent; border-left: 10px solid #dff3ec; }
+    .timeline { flex: 1; height: 4px; background: #ffffff33; }
+    .timeline span { display: block; width: 68%; height: 100%; background: var(--accent); }
+    .video-time { font-family: var(--mono); font-size: 9px; }
+    .analysis-panel { padding: 17px; background: var(--panel); border-left: 1px solid var(--line); }
+    .analysis-title { display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; }
+    .analysis-title strong { font-size: 13px; }
+    .analysis-title span { color: var(--muted); font-family: var(--mono); font-size: 9px; }
+    .result-total { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; margin-bottom: 17px; }
+    .result-stat { padding: 10px 8px; background: var(--panel-2); border-radius: 7px; }
+    .result-stat span { display: block; color: var(--muted); font-size: 9px; }
+    .result-stat strong { display: block; margin-top: 4px; font-family: var(--mono); font-size: 18px; }
+    .reason-list { display: grid; gap: 7px; }
+    .reason-row { display: grid; grid-template-columns: 1fr auto; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); }
+    .reason-row strong { display: block; font-size: 11px; }
+    .reason-row span { display: block; margin-top: 2px; color: var(--muted); font-size: 9px; }
+    .reason-row b { align-self: center; font-family: var(--mono); font-size: 11px; }
+    .confirm-button { width: 100%; min-height: 40px; margin-top: 16px; color: white; background: var(--accent); border: 0; border-radius: 7px; font-weight: 700; cursor: pointer; }
+
+    .queue-section { margin-top: 18px; }
+    .section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .section-head h2 { margin: 0; font-size: 14px; }
+    .section-head span { color: var(--muted); font-size: 10px; }
+    .queue-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+    .queue-card { position: relative; min-width: 0; padding: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
+    .queue-card.current { border-color: var(--accent); }
+    .queue-type { color: var(--muted); font-family: var(--mono); font-size: 9px; }
+    .queue-card strong { display: block; margin: 7px 0 12px; overflow: hidden; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+    .queue-status { display: flex; align-items: center; justify-content: space-between; color: var(--muted); font-size: 9px; }
+    .queue-status b { color: var(--text); }
+    .progress { height: 3px; margin-top: 8px; background: var(--panel-2); overflow: hidden; }
+    .progress span { display: block; width: var(--progress); height: 100%; background: var(--accent); }
+
+    .assistant { min-width: 0; display: flex; flex-direction: column; height: calc(100vh - 58px); position: sticky; top: 58px; background: var(--panel); border-left: 1px solid var(--line); }
+    .assistant-head { display: flex; align-items: center; gap: 10px; padding: 18px; border-bottom: 1px solid var(--line); }
+    .ai-mark { display: grid; place-items: center; width: 32px; height: 32px; background: var(--text); color: var(--panel); border-radius: 6px; font-family: var(--mono); font-size: 10px; font-weight: 800; }
+    .assistant-head strong { display: block; font-size: 13px; }
+    .assistant-head span { color: var(--muted); font-size: 9px; }
+    .mode-badge { margin-left: auto; padding: 4px 7px; color: var(--accent-ink); background: color-mix(in oklch, var(--accent) 13%, var(--panel)); border-radius: 999px; font-family: var(--mono); font-size: 8px; }
+    .chat { flex: 1; overflow-y: auto; padding: 18px; }
+    .message { max-width: 92%; margin-bottom: 14px; padding: 11px 12px; border-radius: 9px; font-size: 11px; line-height: 1.55; }
+    .message.system { background: var(--panel-2); }
+    .message.user { margin-left: auto; color: white; background: var(--text); }
+    .message strong { display: block; margin-bottom: 4px; font-size: 10px; }
+    .insight-card { margin: 8px 0 16px; padding: 12px; background: color-mix(in oklch, var(--accent) 8%, var(--panel)); border: 1px solid color-mix(in oklch, var(--accent) 26%, var(--line)); border-radius: 8px; }
+    .insight-card .label { color: var(--accent-ink); font-family: var(--mono); font-size: 8px; letter-spacing: .08em; }
+    .insight-card strong { display: block; margin: 5px 0; font-size: 12px; }
+    .insight-card p { margin: 0; color: var(--muted); font-size: 10px; line-height: 1.5; }
+    .task-draft { margin-top: 9px; padding-top: 9px; border-top: 1px solid var(--line); }
+    .task-draft span { display: flex; justify-content: space-between; margin: 4px 0; color: var(--muted); font-size: 9px; }
+    .task-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 9px; }
+    .task-actions button { min-height: 34px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel); font-size: 9px; cursor: pointer; }
+    .task-actions button.primary { color: white; background: var(--accent); border-color: var(--accent); }
+    .quick-prompts { display: flex; gap: 6px; padding: 0 14px 10px; overflow-x: auto; }
+    .quick-prompts button { flex: 0 0 auto; padding: 6px 8px; color: var(--muted); background: transparent; border: 1px solid var(--line); border-radius: 999px; font-size: 8px; }
+    .composer { margin: 0 14px 14px; padding: 9px; border: 1px solid var(--line); border-radius: 9px; }
+    .composer textarea { width: 100%; height: 48px; resize: none; color: var(--text); background: transparent; border: 0; outline: 0; font-size: 11px; }
+    .composer-foot { display: flex; align-items: center; justify-content: space-between; }
+    .composer-foot span { color: var(--muted); font-family: var(--mono); font-size: 8px; }
+    .send { min-height: 30px; padding: 0 12px; color: white; background: var(--accent); border: 0; border-radius: 6px; font-size: 9px; font-weight: 700; }
+
+    .secondary-page { padding: 24px; }
+    .secondary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .secondary-card { min-height: 180px; padding: 18px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
+    .secondary-card h3 { margin: 0 0 12px; font-size: 14px; }
+    .secondary-card p { color: var(--muted); font-size: 11px; line-height: 1.6; }
+    .task-row { display: flex; justify-content: space-between; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--line); font-size: 10px; }
+    .task-row span { color: var(--muted); }
+
+    /* 02 暗色指挥舱 */
+    [data-theme="command"] {
+      color-scheme: dark;
+      --bg: oklch(0.16 0.025 228); --panel: oklch(0.205 0.027 226); --panel-2: oklch(0.24 0.03 225);
+      --text: oklch(0.93 0.012 190); --muted: oklch(0.68 0.025 210); --line: oklch(0.34 0.03 220);
+      --accent: oklch(0.75 0.18 157); --accent-ink: oklch(0.8 0.15 157); --radius: 4px; --shadow: none;
+      --font: "DIN Alternate", "PingFang SC", sans-serif; --side: 190px; --assistant: 390px; --gap: 12px;
+    }
+    [data-theme="command"] .sidebar { background: #0e1c22; }
+    [data-theme="command"] .brand-mark, [data-theme="command"] .confirm-button, [data-theme="command"] .send, [data-theme="command"] .task-actions button.primary { color: #07150f; }
+    [data-theme="command"] .stage, [data-theme="command"] .queue-card, [data-theme="command"] .secondary-card { border-color: #3b5d60; }
+    [data-theme="command"] .eyebrow, [data-theme="command"] .nav-label { letter-spacing: .2em; }
+
+    /* 03 媒体分析台 */
+    [data-theme="media"] {
+      --bg: oklch(0.94 0.012 80); --panel: oklch(0.985 0.006 80); --panel-2: oklch(0.91 0.018 82);
+      --text: oklch(0.22 0.025 45); --muted: oklch(0.49 0.025 55); --line: oklch(0.83 0.025 75);
+      --accent: oklch(0.57 0.15 40); --accent-ink: oklch(0.43 0.14 40); --radius: 2px; --shadow: 5px 5px 0 oklch(0.33 0.025 55 / .12);
+      --font: "Charter", "Songti SC", serif; --side: 82px; --assistant: 330px;
+    }
+    [data-theme="media"] .brand-name, [data-theme="media"] .nav-label, [data-theme="media"] .nav-item span, [data-theme="media"] .site-status { display: none; }
+    [data-theme="media"] .brand { justify-content: center; padding: 0 0 22px; }
+    [data-theme="media"] .nav-item { justify-content: center; }
+    [data-theme="media"] .workspace { padding: 28px 32px; }
+    [data-theme="media"] .stage-content { grid-template-columns: minmax(0, 2fr) 260px; }
+    [data-theme="media"] h1 { font-size: 32px; font-weight: 500; }
+
+    /* 04 极简精密台 */
+    [data-theme="precision"] {
+      --bg: oklch(0.98 0.003 250); --panel: white; --panel-2: oklch(0.955 0.005 250);
+      --text: oklch(0.18 0.008 250); --muted: oklch(0.54 0.012 250); --line: oklch(0.9 0.007 250);
+      --accent: oklch(0.55 0.17 250); --accent-ink: oklch(0.44 0.17 250); --radius: 18px; --shadow: 0 18px 50px #1828400d;
+      --font: "Avenir Next", "PingFang SC", sans-serif; --side: 200px; --assistant: 370px; --gap: 22px;
+    }
+    [data-theme="precision"] .workspace { padding: 32px; }
+    [data-theme="precision"] .sidebar { margin: 14px 0 14px 14px; height: calc(100vh - 86px); top: 72px; border: 1px solid var(--line); border-radius: 20px; }
+    [data-theme="precision"] .app-shell { grid-template-columns: calc(var(--side) + 14px) minmax(0, 1fr); }
+    [data-theme="precision"] .assistant { margin: 14px 14px 14px 0; height: calc(100vh - 86px); top: 72px; border: 1px solid var(--line); border-radius: 20px; overflow: hidden; }
+
+    /* 05 高密度调度台 */
+    [data-theme="dense"] {
+      color-scheme: dark;
+      --bg: oklch(0.12 0.014 240); --panel: oklch(0.16 0.017 240); --panel-2: oklch(0.2 0.02 240);
+      --text: oklch(0.9 0.012 190); --muted: oklch(0.64 0.025 205); --line: oklch(0.3 0.027 230);
+      --accent: oklch(0.78 0.16 187); --accent-ink: oklch(0.79 0.15 187); --radius: 0; --shadow: none;
+      --font: "SFMono-Regular", "PingFang SC", monospace; --side: 174px; --assistant: 410px; --gap: 8px;
+    }
+    [data-theme="dense"] .workspace { padding: 12px; }
+    [data-theme="dense"] .sidebar { padding-top: 14px; }
+    [data-theme="dense"] .page-header { margin-bottom: 10px; }
+    [data-theme="dense"] h1 { font-size: 21px; }
+    [data-theme="dense"] .stage { min-height: 390px; }
+    [data-theme="dense"] .stage-content, [data-theme="dense"] .media-view { min-height: 340px; }
+    [data-theme="dense"] .queue-section { margin-top: 10px; }
+    [data-theme="dense"] .queue-card { padding: 8px; }
+    [data-theme="dense"] .assistant-head, [data-theme="dense"] .chat { padding: 12px; }
+
+    /* 06 自然能源叙事台 */
+    [data-theme="field"] {
+      --bg: oklch(0.955 0.025 105); --panel: oklch(0.985 0.015 105); --panel-2: oklch(0.91 0.045 105);
+      --text: oklch(0.25 0.055 125); --muted: oklch(0.5 0.045 120); --line: oklch(0.81 0.055 105);
+      --accent: oklch(0.52 0.14 143); --accent-ink: oklch(0.38 0.12 143); --radius: 12px; --shadow: 0 12px 0 #617a5116;
+      --font: "Charter", "Songti SC", serif; --side: 236px; --assistant: 350px; --gap: 18px;
+    }
+    [data-theme="field"] .brand-mark { border-radius: 50%; }
+    [data-theme="field"] .nav-item.active { box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--accent) 35%, var(--line)); }
+    [data-theme="field"] h1 { font-size: 31px; font-weight: 500; }
+    [data-theme="field"] .stage-toolbar { background: color-mix(in oklch, var(--panel-2) 55%, var(--panel)); }
+
+    @media (max-width: 1180px) {
+      :root { --side: 78px; --assistant: 320px; }
+      .brand-name, .nav-label, .nav-item span, .site-status { display: none; }
+      .brand, .nav-item { justify-content: center; }
+      .queue-grid { grid-template-columns: repeat(2, 1fr); }
+      .header-metrics { display: none; }
+    }
+    @media (max-width: 860px) {
+      .style-note { display: none; }
+      .app-shell { display: block; }
+      .sidebar { display: none; }
+      .page-main { display: block; }
+      .assistant { position: relative; top: auto; height: 620px; border-top: 1px solid var(--line); }
+      .stage-content { grid-template-columns: 1fr; }
+      .analysis-panel { border-left: 0; border-top: 1px solid var(--line); }
+    }
+  </style>
+</head>
+<body data-theme="operations">
+  <header class="prototype-bar">
+    <div class="prototype-title">
+      <strong>光伏智巡 · 风格实验室</strong>
+      <span id="styleDescription">平衡、可信、适合真实运维</span>
+    </div>
+    <nav class="style-switcher" aria-label="选择界面风格">
+      <button class="active" data-style="operations">01 标准运维</button>
+      <button data-style="command">02 暗色指挥</button>
+      <button data-style="media">03 媒体分析</button>
+      <button data-style="precision">04 极简精密</button>
+      <button data-style="dense">05 高密调度</button>
+      <button data-style="field">06 自然能源</button>
+    </nav>
+    <div class="style-note">点击切换 · 页面内容保持一致</div>
+  </header>
+
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">PV</div>
+        <div class="brand-name"><strong>光伏智巡</strong><span>LOCAL CONTROL</span></div>
+      </div>
+      <div class="nav-label">工作台</div>
+      <button class="nav-item active" data-page="recognition"><span>识别与助手</span></button>
+      <button class="nav-item" data-page="tasks"><span>任务中心</span></button>
+      <button class="nav-item" data-page="reports"><span>报告中心</span></button>
+      <div class="nav-label">系统</div>
+      <button class="nav-item"><span>历史数据</span></button>
+      <button class="nav-item"><span>系统设置</span></button>
+      <div class="site-status"><span class="online-dot"></span>本地推理服务在线<br />示范电站 · 240块组件</div>
+    </aside>
+
+    <main>
+      <section id="recognition" class="page active">
+        <div class="page-main">
+          <div class="workspace">
+            <header class="page-header">
+              <div>
+                <div class="eyebrow">Inspection / Batch 0824</div>
+                <h1>识别与智能助手</h1>
+                <p>无人机巡检影像已完成本地分析，等待控制人员确认。</p>
+              </div>
+              <div class="header-metrics">
+                <div class="metric-mini"><span>本批文件</span><strong>05</strong></div>
+                <div class="metric-mini"><span>异常组件</span><strong>08</strong></div>
+                <div class="metric-mini"><span>处理耗时</span><strong>02:14</strong></div>
+              </div>
+            </header>
+
+            <section class="stage">
+              <div class="stage-toolbar">
+                <span class="file-name">north_a2_inspection.mp4</span>
+                <span class="file-meta">1080P · 02:38 · 北区 A2</span>
+                <span class="spacer"></span>
+                <span class="status-pill">分析完成</span>
+              </div>
+              <div class="stage-content">
+                <div class="media-view" aria-label="带检测框的光伏板巡检视频占位画面">
+                  <div class="panel-field">
+                    <div class="solar-panel"></div><div class="solar-panel"></div><div class="solar-panel dirty"></div><div class="solar-panel"></div>
+                    <div class="solar-panel"></div><div class="solar-panel"></div><div class="solar-panel"></div><div class="solar-panel broken"></div>
+                    <div class="solar-panel"></div><div class="solar-panel dirty"></div><div class="solar-panel"></div><div class="solar-panel"></div>
+                  </div>
+                  <div class="detect-box clean"><span class="detect-label">正常 96%</span></div>
+                  <div class="detect-box wash"><span class="detect-label">需要清洗 91%</span></div>
+                  <div class="detect-box repair"><span class="detect-label">需要维修 88%</span></div>
+                  <div class="video-controls"><span class="play"></span><div class="timeline"><span></span></div><span class="video-time">01:47 / 02:38</span></div>
+                </div>
+                <aside class="analysis-panel">
+                  <div class="analysis-title"><strong>本段分析</strong><span>MODEL PV-Y8N.03</span></div>
+                  <div class="result-total">
+                    <div class="result-stat"><span>正常</span><strong>28</strong></div>
+                    <div class="result-stat"><span>清洗</span><strong>06</strong></div>
+                    <div class="result-stat"><span>维修</span><strong>02</strong></div>
+                  </div>
+                  <div class="reason-list">
+                    <div class="reason-row"><div><strong>需要清洗</strong><span>内部原因 · 积灰</span></div><b>4</b></div>
+                    <div class="reason-row"><div><strong>需要清洗</strong><span>内部原因 · 鸟粪</span></div><b>2</b></div>
+                    <div class="reason-row"><div><strong>需要维修</strong><span>内部原因 · 裂纹</span></div><b>1</b></div>
+                    <div class="reason-row"><div><strong>需要维修</strong><span>内部原因 · 遮挡</span></div><b>1</b></div>
+                  </div>
+                  <button class="confirm-button">确认结果并归档</button>
+                </aside>
+              </div>
+            </section>
+
+            <section class="queue-section">
+              <div class="section-head"><h2>本次上传</h2><span>多张图片 + 1个视频 · 区域备注已解析</span></div>
+              <div class="queue-grid">
+                <article class="queue-card current"><span class="queue-type">VIDEO</span><strong>north_a2_inspection.mp4</strong><div class="queue-status"><span>分析完成</span><b>100%</b></div><div class="progress" style="--progress:100%"><span></span></div></article>
+                <article class="queue-card"><span class="queue-type">IMAGE</span><strong>panel_021.jpg</strong><div class="queue-status"><span>待确认</span><b>100%</b></div><div class="progress" style="--progress:100%"><span></span></div></article>
+                <article class="queue-card"><span class="queue-type">IMAGE</span><strong>panel_022.jpg</strong><div class="queue-status"><span>正在识别</span><b>68%</b></div><div class="progress" style="--progress:68%"><span></span></div></article>
+                <article class="queue-card"><span class="queue-type">IMAGE</span><strong>panel_023.jpg</strong><div class="queue-status"><span>排队中</span><b>0%</b></div><div class="progress" style="--progress:0%"><span></span></div></article>
+              </div>
+            </section>
+          </div>
+
+          <aside class="assistant">
+            <div class="assistant-head"><div class="ai-mark">AI</div><div><strong>巡检助手</strong><span>数据查询与任务编排</span></div><span class="mode-badge">LOCAL</span></div>
+            <div class="chat">
+              <div class="message system"><strong>系统</strong>已从备注“示范电站北区A2，第2阵列”中完成区域归档。当前批次发现8块异常组件。</div>
+              <div class="message user">分析北区最近30天情况，并安排需要复查的区域。</div>
+              <div class="insight-card">
+                <span class="label">DATA INSIGHT</span>
+                <strong>北区异常率较上期上升 4.2%</strong>
+                <p>A2阵列积灰增长最明显；A3阵列有2块组件连续两次被判定为需要维修。</p>
+                <div class="task-draft">
+                  <span><b>任务草稿</b><b>#IN-024</b></span>
+                  <span><i>执行对象</i><b>无人机 01</b></span>
+                  <span><i>巡查范围</i><b>北区 A2、A3</b></span>
+                  <span><i>预计耗时</i><b>18分钟</b></span>
+                </div>
+                <div class="task-actions"><button>查看详情</button><button class="primary">确认并执行</button></div>
+              </div>
+              <div class="message system">任务执行后，我会自动分析回传影像并生成网页报告、Excel和PDF。</div>
+            </div>
+            <div class="quick-prompts"><button>北区情况</button><button>生成巡查任务</button><button>查看维修趋势</button></div>
+            <div class="composer"><textarea placeholder="询问区域情况，或下达巡查指令……"></textarea><div class="composer-foot"><span>本地模型优先 · API自动兜底</span><button class="send">发送</button></div></div>
+          </aside>
+        </div>
+      </section>
+
+      <section id="tasks" class="page secondary-page">
+        <header class="page-header"><div><div class="eyebrow">Mission Control</div><h1>任务中心</h1><p>审批、执行和追踪无人机巡查任务。</p></div></header>
+        <div class="secondary-grid">
+          <article class="secondary-card"><h3>执行中 · #IN-023</h3><p>北区A1阵列例行巡查，已回传42张图片和1段视频。</p><div class="task-row"><span>执行进度</span><b>76%</b></div><div class="task-row"><span>异常组件</span><b>5</b></div></article>
+          <article class="secondary-card"><h3>待确认 · #IN-024</h3><p>智能体根据北区近30天异常趋势生成。</p><div class="task-row"><span>巡查范围</span><b>A2、A3</b></div><div class="task-row"><span>预计耗时</span><b>18分钟</b></div></article>
+          <article class="secondary-card"><h3>已完成 · #IN-022</h3><p>西区清洗后复检，所有任务数据已归档。</p><div class="task-row"><span>清洗改善</span><b>+12.8%</b></div><div class="task-row"><span>报告状态</span><b>已生成</b></div></article>
+        </div>
+      </section>
+
+      <section id="reports" class="page secondary-page">
+        <header class="page-header"><div><div class="eyebrow">Inspection Reports</div><h1>报告中心</h1><p>巡查结果、异常截图与30天趋势汇总。</p></div></header>
+        <div class="secondary-grid">
+          <article class="secondary-card"><h3>北区30天巡检报告</h3><p>覆盖60块组件，识别记录486条。积灰问题主要集中在A2阵列。</p><div class="task-row"><span>需要清洗</span><b>11</b></div><div class="task-row"><span>需要维修</span><b>3</b></div></article>
+          <article class="secondary-card"><h3>清洗效果复检</h3><p>清洗后正常率从81.3%提升至94.1%。</p><div class="task-row"><span>改善幅度</span><b>+12.8%</b></div><div class="task-row"><span>异常截图</span><b>18张</b></div></article>
+          <article class="secondary-card"><h3>导出与归档</h3><p>网页统计口径与导出文件保持一致。</p><div class="task-row"><span>PDF</span><b>生成</b></div><div class="task-row"><span>Excel</span><b>生成</b></div></article>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const descriptions = {
+      operations: "平衡、可信、适合真实运维",
+      command: "暗场聚焦、适合答辩大屏",
+      media: "影像优先、突出识别与复核",
+      precision: "克制、轻盈、降低学习成本",
+      dense: "数据密集、面向专业调度人员",
+      field: "自然温度、强调绿色能源叙事"
+    };
+    document.querySelectorAll("[data-style]").forEach((button) => {
+      button.addEventListener("click", () => {
+        document.body.dataset.theme = button.dataset.style;
+        document.querySelectorAll("[data-style]").forEach((item) => item.classList.toggle("active", item === button));
+        document.getElementById("styleDescription").textContent = descriptions[button.dataset.style];
+      });
+    });
+    document.querySelectorAll("[data-page]").forEach((button) => {
+      button.addEventListener("click", () => {
+        document.querySelectorAll("[data-page]").forEach((item) => item.classList.toggle("active", item === button));
+        document.querySelectorAll(".page").forEach((page) => page.classList.toggle("active", page.id === button.dataset.page));
+      });
+    });
+  </script>
+</body>
+</html>
